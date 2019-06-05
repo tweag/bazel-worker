@@ -55,8 +55,19 @@ server = withSocketsDo $ do
     talk conn = do
         msg <- recv conn max_bytes_msg
         unless (S.null msg) $ do
-          sendAll conn msg
+          let req = (fromRight undefined $ decodeMessage msg) :: W.WorkRequest
+          putStrLn $ "Received: " ++ (show req)
+          let resp = processRequest req
+          sendAll conn . runBuilder $ buildMessage resp
           talk conn
+
+processRequest :: W.WorkRequest -> W.WorkResponse
+processRequest _ = sampleResponse
+
+sampleResponse :: W.WorkResponse
+sampleResponse = defMessage
+    & W.exitCode .~ 0
+    & W.output   .~ "All good"
 
 client :: IO ()
 client = withSocketsDo $ do
@@ -75,9 +86,7 @@ client = withSocketsDo $ do
         sendAll sock . runBuilder $ buildMessage sampleReq
         msg <- recv sock max_bytes_msg
         putStr "Received: "
-        let resp = (fromRight undefined $ decodeMessage msg) :: W.WorkRequest
-        -- TODO: above we say Req instead of Resp as we're still
-        --       testing with the Echo server
+        let resp = (fromRight undefined $ decodeMessage msg) :: W.WorkResponse
         putStrLn (show resp)
 
 sampleReq :: W.WorkRequest
