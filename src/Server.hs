@@ -72,7 +72,20 @@ client = withSocketsDo $ do
         connect sock $ addrAddress addr
         return sock
     talk sock = do
-        sendAll sock "Hello, world!"
+        sendAll sock . runBuilder $ buildMessage sampleReq
         msg <- recv sock max_bytes_msg
         putStr "Received: "
-        C.putStrLn msg
+        let resp = (fromRight undefined $ decodeMessage msg) :: W.WorkRequest
+        -- TODO: above we say Req instead of Resp as we're still
+        --       testing with the Echo server
+        putStrLn (show resp)
+
+sampleReq :: W.WorkRequest
+sampleReq = defMessage
+    & W.arguments .~ [""]
+    & W.inputs    .~ [inp]
+  where
+    inp :: W.Input
+    inp = defMessage
+        & W.path   .~ "src/Main.hs"
+        & W.digest .~ "main"
