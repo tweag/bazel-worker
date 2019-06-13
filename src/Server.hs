@@ -16,7 +16,6 @@ import Lens.Micro
 
 import qualified Data.ByteString as S
 
---import Control.Monad (forever, guard)
 import Data.Bits ((.&.))
 import Data.Word
 import Foreign.Marshal
@@ -97,7 +96,7 @@ client hOut hIn = do
     let logH = stderr
 
     let msgreq = runBuilder . buildMessageDelimited $ sampleReq
-    hPutStrLn logH $ "Client started, about to send a msg of len: " 
+    hPutStrLn logH $ "Client started, about to send a request of len: " 
         ++ show (S.length msgreq)
     S.hPut hOut msgreq
     hPutStrLn logH "Client: message sent; waiting for reply's len..."

@@ -8,6 +8,7 @@ import Server (server, client)
 import Control.Concurrent (forkIO)
 import Control.Monad (forever)
 import qualified Data.ByteString as S
+import qualified Data.ByteString.Char8 as C (hPutStrLn)
 import System.IO
 import System.Process (runInteractiveCommand)
 
@@ -18,12 +19,6 @@ main = do
     hPutStrLn stderr $ "Args taken: " ++ show args
     if "--persistent-worker" `elem` args
       then server stdin stdout
-          {-let hOut = stdout
-          hOut <- openBinaryFile
-            "resp.dat"
-            WriteMode
-          server stdin hOut
-          hClose hOut -}
       else setup
 
 setup :: IO () 
@@ -33,7 +28,7 @@ setup = do
 
     -- pipe server's stderr to our stderr
     _ <- forkIO . forever $ do
-        c <- S.hGet err 1
-        S.hPut stderr c
+        s <- S.hGetLine err
+        C.hPutStrLn stderr s
 
     client inp out -- server's input is client's output and vv
