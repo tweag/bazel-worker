@@ -23,11 +23,14 @@ custom-setup
 executable worker-proto
   main-is:             Main.hs
   other-modules:       Server
+  ghc-options: -threaded "-with-rtsopts=-N2"
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0,
                        bytestring,
+                       data-bword,
                        microlens,
                        network,
+                       process,
                        proto-lens,
                        unix,
                        worker-proto,
