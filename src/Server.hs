@@ -7,20 +7,12 @@ import Proto.Worker_Fields as W
 import Data.ProtoLens (defMessage)
 import Data.ProtoLens.Encoding
   ( buildMessageDelimited
-  , decodeMessage )
-import Data.ProtoLens.Encoding.Bytes
-  ( runBuilder
-  , runParser
-  , getVarInt )
+  , decodeMessageDelimitedH )
+import Data.ProtoLens.Encoding.Bytes ( runBuilder )
 import Lens.Micro
 
+import Control.Monad (forever)
 import qualified Data.ByteString as S
-
-import Data.Bits ((.&.))
-import Data.Word
-import Foreign.Marshal
-import Foreign.Ptr
-import Foreign.Storable
 import System.IO
 
 server :: Handle -> Handle -> IO ()
@@ -31,52 +23,25 @@ server hIn hOut = do
     hSetBinaryMode hIn True
     hSetBinaryMode hOut True
     hPutStrLn stderr "Server Starts"
-    {-forever-} 
-    loop
+    _ <- forever loop
     hPutStrLn stderr "Server: Bye"
   where
     loop = do
       let logH = stderr
-      hPutStrLn logH $ "Server Waiting for Len..."
-      len <- getLength hIn
 
-      hPutStrLn logH $ "Server Len: " ++ show len
-          ++ "\nServer Receiving Msg..."
-      msg <- S.hGet hIn $ fromIntegral len
+      hPutStrLn logH $ "Server: Waiting for a message..."
+      msg <- decodeMessageDelimitedH hIn
       
-      hPutStrLn logH "Server after get msg, decoding..."
-      req <- either fail return (decodeMessage msg) :: IO W.WorkRequest
-      hPutStr logH $ "Server Msg Received: " ++ show req
-          ++ "\nServer is about to respond, response size: "
+      hPutStrLn logH "Server: got a message, decoding..."
+      req <- either fail return msg :: IO W.WorkRequest
+      hPutStrLn logH $ "Server: msg received: " ++ show req
 
+      -- Processing a request
       let resp = processRequest req
+
       let msgresp = runBuilder . buildMessageDelimited $ resp
-      hPutStrLn logH . show . S.length $ msgresp
       S.hPut hOut msgresp
       hPutStrLn logH $ "Server sent response..."
-
-getLength :: Handle -> IO Word64
-getLength h = do
-    buf <- mallocBytes 4
-    arr <- loop buf 0
-    res <- either fail return (runParser getVarInt . S.pack $ arr)
-    free buf
-    return res
-  where
-    loop :: Ptr Word8 -> Int -> IO [Word8]
-    loop buf offset = do
-        let cur = (buf `plusPtr` offset) :: Ptr Word8
-        readCnt <- hGetBuf h cur 1
-        _ <- if readCnt /= 1 
-          then fail $ "getLength: readCnt /= 1 (= "  ++ show readCnt ++ ")"
-          else return ()
-        b <- peek cur
-        if testMsb b
-          then loop buf (offset + 1)
-          else peekArray (offset + 1) buf
-
-testMsb :: Word8 -> Bool
-testMsb b = (b .&. 128) == 1
 
 processRequest :: W.WorkRequest -> W.WorkResponse
 processRequest _ = sampleResponse
@@ -96,19 +61,13 @@ client hOut hIn = do
     let logH = stderr
 
     let msgreq = runBuilder . buildMessageDelimited $ sampleReq
-    hPutStrLn logH $ "Client started, about to send a request of len: " 
-        ++ show (S.length msgreq)
+    hPutStrLn logH $ "Client started, about to send a request" 
     S.hPut hOut msgreq
-    hPutStrLn logH "Client: message sent; waiting for reply's len..."
-
-    len <- getLength hIn
-    hPutStrLn logH $ "Client recvd len: " ++ show len
 
     hPutStrLn logH $ "Client receiving reply..."
-    msg <- S.hGet hIn $ fromIntegral len
-    hPutStrLn logH "Client received reply, decoding..."
+    msg <- decodeMessageDelimitedH hIn
 
-    resp <- either fail return (decodeMessage msg) :: IO W.WorkResponse
+    resp <- either fail return msg :: IO W.WorkResponse
     hPutStrLn logH $ "Client received: " ++ show resp
 
 sampleReq :: W.WorkRequest

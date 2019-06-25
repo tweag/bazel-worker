@@ -4,7 +4,7 @@ A prototype implementation of a Bazel persistent worker — essentially, a compi
 
 ## Building
 
-Because `cabal new-build` still have rough corners, you have to install stuff manually before doing calling it. There are two steps.
+Because `cabal new-build` still have rough corners, you have to install stuff manually before calling it. There are two steps.
 
 First, get `proto-lens-protoc`:
 ```shell

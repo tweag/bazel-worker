@@ -2,13 +2,13 @@
 module Main where
 
 import System.Environment (getArgs)
---import System.Posix.Process (getProcessID)
 import Server (server, client)
 
 import Control.Concurrent (forkIO)
 import Control.Monad (forever)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as C (hPutStrLn)
+import System.Exit (exitFailure)
 import System.IO
 import System.Process (runInteractiveCommand)
 
@@ -20,6 +20,8 @@ main = do
     if "--persistent-worker" `elem` args
       then server stdin stdout
       else setup
+          -- print "Worker should be called with --persistent-worker"
+          -- >> exitFailure
 
 setup :: IO () 
 setup = do
