@@ -8,7 +8,7 @@ A prototype implementation of a Bazel persistent worker wrapping GHC. Using GHC 
 cabal new-test
 ```
 
-should show off a simple example of builnd `hello.hs` (project root).
+should show off a simple example of building `tests/hello.hs`.
 
 ## Building
 

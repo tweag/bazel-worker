@@ -58,5 +58,5 @@ sampleReq = defMessage
   where
     inp :: W.Input
     inp = defMessage
-        & W.path   .~ "hello.hs"
+        & W.path   .~ "tests/hello.hs"
         & W.digest .~ "test"
