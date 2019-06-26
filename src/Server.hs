@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Server (server, client) where
+module Server (server) where
 
 {- ProtoBuf -}
 import Proto.Worker as W
@@ -34,7 +34,7 @@ server hIn hOut = do
       
       hPutStrLn logH "Server: got a message, decoding..."
       req <- either fail return msg :: IO W.WorkRequest
-      hPutStrLn logH $ "Server: msg received: " ++ show req
+      hPutStr logH $ "Server: msg received: " ++ show req
 
       -- Processing a request
       let resp = processRequest req
@@ -50,32 +50,3 @@ sampleResponse :: W.WorkResponse
 sampleResponse = defMessage
     & W.exitCode .~ 0
     & W.output   .~ "All good"
-
-client :: Handle -> Handle -> IO ()
-client hOut hIn = do
-    hSetBuffering stderr NoBuffering
-    hSetBuffering hIn NoBuffering
-    hSetBuffering hOut  NoBuffering
-    hSetBinaryMode hIn True
-    hSetBinaryMode hOut True
-    let logH = stderr
-
-    let msgreq = runBuilder . buildMessageDelimited $ sampleReq
-    hPutStrLn logH $ "Client started, about to send a request" 
-    S.hPut hOut msgreq
-
-    hPutStrLn logH $ "Client receiving reply..."
-    msg <- decodeMessageDelimitedH hIn
-
-    resp <- either fail return msg :: IO W.WorkResponse
-    hPutStrLn logH $ "Client received: " ++ show resp
-
-sampleReq :: W.WorkRequest
-sampleReq = defMessage
-    & W.arguments .~ ["-O1"]
-    & W.inputs    .~ [inp]
-  where
-    inp :: W.Input
-    inp = defMessage
-        & W.path   .~ "src/Main.hs"
-        & W.digest .~ "main"
