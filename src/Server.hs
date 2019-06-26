@@ -2,8 +2,8 @@
 module Server (server) where
 
 {- ProtoBuf -}
-import Proto.Worker as W
-import Proto.Worker_Fields as W
+import qualified Proto.Worker as W
+import qualified Proto.Worker_Fields as W
 import Data.ProtoLens (defMessage)
 import Data.ProtoLens.Encoding
   ( buildMessageDelimited
@@ -13,7 +13,12 @@ import Lens.Micro
 
 import Control.Monad (forever)
 import qualified Data.ByteString as S
+import qualified Data.Text as T
 import System.IO
+
+import GHC
+import GHC.Paths ( libdir )
+import DynFlags ( defaultFatalMessager, defaultFlushOut )
 
 server :: Handle -> Handle -> IO ()
 server hIn hOut = do
@@ -34,17 +39,36 @@ server hIn hOut = do
       
       hPutStrLn logH "Server: got a message, decoding..."
       req <- either fail return msg :: IO W.WorkRequest
-      hPutStr logH $ "Server: msg received: " ++ show req
+      hPutStrLn logH $ "Server: msg received: " ++ show req
 
       -- Processing a request
-      let resp = processRequest req
+      resp <- processRequest req
 
       let msgresp = runBuilder . buildMessageDelimited $ resp
       S.hPut hOut msgresp
       hPutStrLn logH $ "Server sent response..."
 
-processRequest :: W.WorkRequest -> W.WorkResponse
-processRequest _ = sampleResponse
+processRequest :: W.WorkRequest -> IO W.WorkResponse
+processRequest req = do
+    let (flags, inputs) = destructRequest req
+
+    _ <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
+      runGhc (Just libdir) $ do
+        dflags <- getSessionDynFlags
+        (dflagsUpd, _, _warns) <-
+          parseDynamicFlags dflags (map noLoc flags)
+        _ <- setSessionDynFlags dflagsUpd
+        targets <- mapM ((flip guessTarget) Nothing) inputs
+        setTargets targets
+        load LoadAllTargets
+
+    return sampleResponse
+  
+destructRequest :: W.WorkRequest -> ([String], [String])
+destructRequest req = (flags, inputs)
+  where
+    flags = map T.unpack $ req ^. W.arguments
+    inputs = map (T.unpack . (^. W.path)) $ req ^. W.inputs
 
 sampleResponse :: W.WorkResponse
 sampleResponse = defMessage

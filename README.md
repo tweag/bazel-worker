@@ -1,6 +1,14 @@
-# bazel-worker
+# bazel-ghc-worker
 
-A prototype implementation of a Bazel persistent worker — essentially, a compiler-as-a-service, but without a compiler yet. The plan is to use (or extend) GHC as the compiler part.
+A prototype implementation of a Bazel persistent worker wrapping GHC. Using GHC API for serving compilation requests from Bazel.
+
+## Testing
+
+```shell
+cabal new-test
+```
+
+should show off a simple example of builnd `hello.hs` (project root).
 
 ## Building
 
