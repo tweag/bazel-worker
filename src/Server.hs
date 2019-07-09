@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 module Server (server) where
 
 {- ProtoBuf -}
@@ -13,6 +13,7 @@ import Lens.Micro
 
 import Control.Monad (forever)
 import qualified Data.ByteString as S
+import qualified Data.List as L
 import qualified Data.Text as T
 import System.IO
 
@@ -20,8 +21,8 @@ import GHC
 import GHC.Paths ( libdir )
 import DynFlags ( defaultFatalMessager, defaultFlushOut )
 
-server :: Handle -> Handle -> IO ()
-server hIn hOut = do
+server :: Handle -> Handle -> [String] -> IO ()
+server hIn hOut extra_args = do
     hSetBuffering stderr NoBuffering
     hSetBuffering hIn NoBuffering
     hSetBuffering hOut  NoBuffering
@@ -42,15 +43,16 @@ server hIn hOut = do
       hPutStrLn logH $ "Server: msg received: " ++ show req
 
       -- Processing a request
-      resp <- processRequest req
+      resp <- processRequest req extra_args
 
       let msgresp = runBuilder . buildMessageDelimited $ resp
       S.hPut hOut msgresp
       hPutStrLn logH $ "Server sent response..."
 
-processRequest :: W.WorkRequest -> IO W.WorkResponse
-processRequest req = do
-    let (flags, inputs) = destructRequest req
+processRequest :: W.WorkRequest -> [String] -> IO W.WorkResponse
+processRequest req extra_args = do
+    let ((++ extra_args) -> flags
+          , filter (".hs" `L.isSuffixOf`) -> inputs) = destructRequest req
 
     _ <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
       runGhc (Just libdir) $ do
