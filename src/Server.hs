@@ -51,7 +51,7 @@ server hIn hOut extra_args = do
 
 processRequest :: W.WorkRequest -> [String] -> IO W.WorkResponse
 processRequest req extra_args = do
-    let ((++ extra_args) -> flags
+    let ((++ extra_args ++ ["-v3"]) -> flags
           , filter (".hs" `L.isSuffixOf`) -> inputs) = destructRequest req
 
     _ <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
@@ -75,4 +75,4 @@ destructRequest req = (flags, inputs)
 sampleResponse :: W.WorkResponse
 sampleResponse = defMessage
     & W.exitCode .~ 0
-    & W.output   .~ "All good"
+    & W.output   .~ "All good.\n"

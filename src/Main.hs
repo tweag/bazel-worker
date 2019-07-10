@@ -6,13 +6,19 @@ import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO
 
+import GHC.IO.Handle (hDuplicate, hDuplicateTo)
 
 main :: IO ()
 main = do
+
+    -- redirect stdout to stderr
+    stdout_dup <- hDuplicate stdout
+    hDuplicateTo stderr stdout
+  
     args <- getArgs
     hPutStrLn stderr $ "Args taken: " ++ show args    
     if "--persistent_worker" `elem` args
-      then server stdin stdout args
+      then server stdin stdout_dup args
       else
           print "Worker should be called with --persistent_worker"
           >> exitFailure
