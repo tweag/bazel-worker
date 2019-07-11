@@ -8,6 +8,9 @@ import System.IO
 
 import GHC.IO.Handle (hDuplicate, hDuplicateTo)
 
+pwFlag :: String
+pwFlag = "--persistent_worker"
+
 main :: IO ()
 main = do
 
@@ -17,8 +20,8 @@ main = do
   
     args <- getArgs
     hPutStrLn stderr $ "Args taken: " ++ show args    
-    if "--persistent_worker" `elem` args
-      then server stdin stdout_dup args
+    if pwFlag `elem` args
+      then server stdin stdout_dup $ filter (/= pwFlag) args
       else
           print "Worker should be called with --persistent_worker"
           >> exitFailure

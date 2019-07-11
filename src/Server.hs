@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings, ViewPatterns, NondecreasingIndentation #-}
+
 module Server (server) where
 
 {- ProtoBuf -}
@@ -11,15 +12,12 @@ import Data.ProtoLens.Encoding
 import Data.ProtoLens.Encoding.Bytes ( runBuilder )
 import Lens.Micro
 
-import Control.Monad (forever)
+import Control.Monad
 import qualified Data.ByteString as S
-import qualified Data.List as L
 import qualified Data.Text as T
 import System.IO
 
-import GHC
-import GHC.Paths ( libdir )
-import DynFlags ( defaultFatalMessager, defaultFlushOut )
+import Compile (compile)
 
 server :: Handle -> Handle -> [String] -> IO ()
 server hIn hOut extra_args = do
@@ -51,18 +49,9 @@ server hIn hOut extra_args = do
 
 processRequest :: W.WorkRequest -> [String] -> IO W.WorkResponse
 processRequest req extra_args = do
-    let ((++ extra_args ++ ["-v3"]) -> flags
-          , filter (".hs" `L.isSuffixOf`) -> inputs) = destructRequest req
+    let (args, _inputs) = destructRequest req
 
-    _ <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
-      runGhc (Just libdir) $ do
-        dflags <- getSessionDynFlags
-        (dflagsUpd, _, _warns) <-
-          parseDynamicFlags dflags (map noLoc flags)
-        _ <- setSessionDynFlags dflagsUpd
-        targets <- mapM ((flip guessTarget) Nothing) inputs
-        setTargets targets
-        load LoadAllTargets
+    compile (args ++ extra_args)
 
     return sampleResponse
   

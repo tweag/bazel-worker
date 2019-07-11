@@ -22,12 +22,13 @@ custom-setup
 
 executable worker-proto
   main-is:             Main.hs
-  other-modules:       Server
+  other-modules:       Server, Compile
   ghc-options: -threaded "-with-rtsopts=-N2"
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0,
                        bytestring,
                        data-bword,
+                       filepath,
                        ghc,
                        ghc-paths,
                        microlens,
