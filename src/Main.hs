@@ -15,8 +15,9 @@ main :: IO ()
 main = do
 
     -- redirect stdout to stderr
-    stdout_dup <- hDuplicate stdout
-    hDuplicateTo stderr stdout
+    -- stdout_dup <- hDuplicate stdout
+    -- hDuplicateTo stderr stdout
+    let stdout_dup = stdout
   
     args <- getArgs
     hPutStrLn stderr $ "Args taken: " ++ show args    
