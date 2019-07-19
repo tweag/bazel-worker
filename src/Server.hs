@@ -16,7 +16,7 @@ import DynFlags ( defaultFatalMessager, defaultFlushOut )
 {- ProtoBuf -}
 import qualified Proto.Worker as W
 import qualified Proto.Worker_Fields as W
-import Data.ProtoLens (defMessage)
+import Data.ProtoLens (defMessage, pprintMessage)
 import Data.ProtoLens.Encoding
   ( buildMessageDelimited
   , decodeMessageDelimitedH )
@@ -76,7 +76,7 @@ getRequest hIn = liftIO $  do
       
         hPutStrLn logH "Server: got a message, decoding..."
         req <- either fail return msg :: IO W.WorkRequest
-        hPutStrLn logH $ "Server: msg received: " ++ show req
+        hPutStrLn logH $ "Server: msg received: " ++ (show . pprintMessage $ req)
         return req
 
 sendResponse :: MonadIO m => Handle -> W.WorkResponse -> m ()
