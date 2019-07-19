@@ -6,7 +6,7 @@ import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO
 
-import GHC.IO.Handle (hDuplicate, hDuplicateTo)
+--import GHC.IO.Handle (hDuplicate, hDuplicateTo)
 
 pwFlag :: String
 pwFlag = "--persistent_worker"

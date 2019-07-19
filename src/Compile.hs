@@ -1,4 +1,4 @@
-{-# LANGUAGE NondecreasingIndentation #-}
+{-# LANGUAGE OverloadedStrings, NondecreasingIndentation #-}
 
 module Compile (compile) where
 
@@ -9,17 +9,13 @@ import System.FilePath
 import System.Exit
 
 import GHC
-import GHC.Paths ( libdir )
-import DynFlags ( defaultFatalMessager, defaultFlushOut, Option(..) )
+import DynFlags ( Option(..) )
 import DriverPhases
 import DriverPipeline ( compileFile, oneShot )
 import Util
 
-compile :: [String] -> IO ()
-compile flags =
-    defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
-      runGhc (Just libdir) $ do
-
+compile :: [String] -> Ghc ()
+compile flags = do
         -- Parse flags
         dflags <- getSessionDynFlags
         (dflags2, fileish_args, _warns) <-
@@ -48,6 +44,7 @@ compile flags =
         _ <- setSessionDynFlags dflags3
 
         doMake srcs
+
 
 doMake :: [(String,Maybe Phase)] -> Ghc ()
 doMake srcs  = do

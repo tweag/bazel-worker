@@ -2,6 +2,17 @@
 
 module Server (server) where
 
+import qualified Data.ByteString as S
+import qualified Data.Text as T
+import System.IO
+
+import Control.Monad
+import Control.Monad.IO.Class (liftIO, MonadIO)
+
+import GHC
+import GHC.Paths ( libdir )
+import DynFlags ( defaultFatalMessager, defaultFlushOut )
+
 {- ProtoBuf -}
 import qualified Proto.Worker as W
 import qualified Proto.Worker_Fields as W
@@ -12,12 +23,10 @@ import Data.ProtoLens.Encoding
 import Data.ProtoLens.Encoding.Bytes ( runBuilder )
 import Lens.Micro
 
-import Control.Monad
-import qualified Data.ByteString as S
-import qualified Data.Text as T
-import System.IO
-
 import Compile (compile)
+
+logH :: Handle
+logH = stderr
 
 server :: Handle -> Handle -> [String] -> IO ()
 server hIn hOut extra_args = do
@@ -27,27 +36,21 @@ server hIn hOut extra_args = do
     hSetBinaryMode hIn True
     hSetBinaryMode hOut True
     hPutStrLn stderr "Server Starts"
-    _ <- forever loop
+    
+    _ <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
+      runGhc (Just libdir) (forever loop)
+
     hPutStrLn stderr "Server: Bye"
+
   where
     loop = do
-      let logH = stderr
+        req <- getRequest hIn
+        
+        resp <- processRequest req extra_args
 
-      hPutStrLn logH $ "Server: Waiting for a message..."
-      msg <- decodeMessageDelimitedH hIn
-      
-      hPutStrLn logH "Server: got a message, decoding..."
-      req <- either fail return msg :: IO W.WorkRequest
-      hPutStrLn logH $ "Server: msg received: " ++ show req
+        sendResponse hOut resp
 
-      -- Processing a request
-      resp <- processRequest req extra_args
-
-      let msgresp = runBuilder . buildMessageDelimited $ resp
-      S.hPut hOut msgresp
-      hPutStrLn logH $ "Server sent response..."
-
-processRequest :: W.WorkRequest -> [String] -> IO W.WorkResponse
+processRequest :: W.WorkRequest -> [String] -> Ghc W.WorkResponse
 processRequest req extra_args = do
     let (args, _inputs) = destructRequest req
 
@@ -65,3 +68,19 @@ sampleResponse :: W.WorkResponse
 sampleResponse = defMessage
     & W.exitCode .~ 0
     & W.output   .~ "All good.\n"
+
+getRequest :: MonadIO m => Handle -> m W.WorkRequest
+getRequest hIn = liftIO $  do
+        hPutStrLn logH $ "Server: Waiting for a message..."
+        msg <- decodeMessageDelimitedH hIn
+      
+        hPutStrLn logH "Server: got a message, decoding..."
+        req <- either fail return msg :: IO W.WorkRequest
+        hPutStrLn logH $ "Server: msg received: " ++ show req
+        return req
+
+sendResponse :: MonadIO m => Handle -> W.WorkResponse -> m ()
+sendResponse hOut resp = liftIO $ do
+        let msgresp = runBuilder . buildMessageDelimited $ resp
+        S.hPut hOut msgresp
+        hPutStrLn logH $ "Server sent response..."
