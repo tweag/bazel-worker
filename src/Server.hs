@@ -1,11 +1,11 @@
-{-# LANGUAGE OverloadedStrings, ViewPatterns, NondecreasingIndentation #-}
+{-# LANGUAGE OverloadedStrings, NondecreasingIndentation #-}
 
 module Server (server) where
 
 {- ProtoBuf -}
 import qualified Proto.Worker as W
 import qualified Proto.Worker_Fields as W
-import Data.ProtoLens (defMessage)
+import Data.ProtoLens (defMessage, pprintMessage)
 import Data.ProtoLens.Encoding
   ( buildMessageDelimited
   , decodeMessageDelimitedH )
@@ -38,7 +38,7 @@ server hIn hOut extra_args = do
       
       hPutStrLn logH "Server: got a message, decoding..."
       req <- either fail return msg :: IO W.WorkRequest
-      hPutStrLn logH $ "Server: msg received: " ++ show req
+      hPutStrLn logH $ "Server: msg received:\n" ++ (show . pprintMessage $ req)
 
       -- Processing a request
       resp <- processRequest req extra_args
