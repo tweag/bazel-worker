@@ -35,12 +35,12 @@ server hIn hOut extra_args = do
     hSetBuffering hOut  NoBuffering
     hSetBinaryMode hIn True
     hSetBinaryMode hOut True
-    hPutStrLn stderr "Server Starts"
+    hPutStrLn logH "Server Starts"
     
     _ <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
       runGhc (Just libdir) (forever loop)
 
-    hPutStrLn stderr "Server: Bye"
+    hPutStrLn logH "Server: Bye"
 
   where
     loop = do
@@ -54,7 +54,7 @@ processRequest :: W.WorkRequest -> [String] -> Ghc W.WorkResponse
 processRequest req extra_args = do
     let (args, _inputs) = destructRequest req
 
-    compile (args ++ extra_args)
+    compile (args ++ extra_args ++ ["-v3"])
 
     return sampleResponse
   
