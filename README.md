@@ -1,6 +1,22 @@
 # bazel-ghc-worker
 
-A prototype implementation of a Bazel persistent worker wrapping GHC. Using GHC API for serving compilation requests from Bazel.
+A prototype implementation of a Bazel [persistent worker](https://blog.bazel.build/2015/12/10/java-workers.html) wrapping GHC.
+It uses GHC API for serving compilation requests from Bazel.
+Subject of being merged into [rules_haskell](https://github.com/tweag/bazel-worker/) (now it's in the [`worker`](https://github.com/tweag/rules_haskell/tree/worker) branch).
+
+## Performance
+
+Current implementation does the simplest thing possible: it restarts GHC to serve every request; technically: every request implies a separate call to `runGhc`. Even this approach brings 10-15% speedup on a certain simple benchmark project. We should do better though. There are several avenues to improve.
+
+### Idea 1: Caching (Parts of) GHC Startup
+
+There should be a way to profit from the warm startup vs the cold one. One idea I've been pursuing specifically: cache loading package databases. It requires GHC to export some more internals in the API. Subject to a GHC ticket.
+
+### Idea 2: Incremental Builds
+
+A worker should be able to cache resulting artifacts. Later on, when it recieves a request to build an input with a known `digest` (hash), it should return the corresponding artifact straight away.
+
+This idea implemented in several other workers (Swift, Kotlin, `rules_scala_anex`), but not in all (or majority) of them.
 
 ## Testing
 
