@@ -27,12 +27,10 @@ executable worker-proto
   -- other-extensions:
   build-depends:       base ^>=4.12.0.0,
                        bytestring,
-                       data-bword,
                        filepath,
                        ghc,
                        ghc-paths,
                        microlens,
-                       network,
                        process,
                        proto-lens >= 0.5.1.0,
                        text,
